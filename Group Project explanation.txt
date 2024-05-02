@@ -1,0 +1,10 @@
+A Book reviewing website.
+
+Users can create an account and post book reviews
+
+other users can leave comments on book reviews and like comments
+
+Features include:
+	- user page  of posts
+	- general posts dash
+	- book review creation
