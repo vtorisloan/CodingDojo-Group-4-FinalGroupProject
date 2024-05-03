@@ -1,39 +1,141 @@
-
-from flask_app import app
+from flask import flash
+from re import compile
 from flask_app.config.mysqlconnection import connectToMySQL
-from flask import flash, session
-# import re
-# from flask_bcrypt import Bcrypt
-# bcrypt = Bcrypt(app)
-# The above is used when we do login registration, flask-bcrypt should already be in your env check the pipfile
 
-# Remember 'fat models, skinny controllers' more logic should go in here rather than in your controller. Your controller should be able to just call a function from the model for what it needs, ideally.
+EMAIL_REGEX = compile(r"^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]+$")
+# from flask_app.models import book
 
+#parent table (User model)
 class User:
-    db = "" #which database are you using for this project
+    _db = ""
     def __init__(self, data):
-        self.id = data['id']
-        self.first_name = data['first_name']
-        self.last_name = data['last_name']
-        self.email = data['email']
-        self.password = data['password']
-        self.created_at = data['created_at']
-        self.updated_at = data['updated_at']
-        # What changes need to be made above for this project?
-        #What needs to be added here for class association?
+        self.id = data["id"]
+        self.first_name = data["first_name"]
+        self.last_name = data["last_name"]
+        self.email = data["email"]
+        self.password = data["password"]
+        self.created_at = data["created_at"]
+        self.updated_at = data["updated_at"]
+        # self.gizmos = []
+        # self.user_watchlist = [] 
 
+    @staticmethod
+    def registration_is_valid(form_data):
+        """This method validates the registration form"""
+        is_valid = True
 
+        if len(form_data["first_name"].strip()) == 0:
+            flash("please enter first name" , "register")
+            is_valid = False
+        elif len(form_data["first_name"].strip()) < 2:
+            flash("First name must be at least 2 characters" , "register")
+        
+        if len(form_data["last_name"].strip()) == 0:
+            flash("please enter last name" , "register")
+            is_valid = False
+        elif len(form_data["last_name"].strip()) < 2:
+            flash("Last name must be at least 2 characters" , "register")
 
-    # Create Users Models
+        if len(form_data["email"].strip()) == 0:
+            flash("please enter email" , "register")
+            is_valid = False
+        elif not EMAIL_REGEX.match(form_data["email"]):
+            flash("invalid email address" , "register")
+            is_valid = False
 
+        if len(form_data["password"].strip()) == 0:
+            flash("please enter password" , "register")
+            is_valid = False
+        elif len(form_data["password"].strip()) < 8:
+            flash("Password must be at least 8 characters" , "register")
+            is_valid = False
+        elif form_data["password"] != form_data["confirm_password"]:
+            flash("Passwords do not match" , "register")
+            is_valid = False
 
+        return is_valid
 
-    # Read Users Models
+    @staticmethod
+    def login_is_valid(form_data):
+            is_valid = True
 
+            if len(form_data["email"].strip()) == 0:
+                flash("please enter email" , "login")
+                is_valid = False
+            elif not EMAIL_REGEX.match(form_data["email"].strip()):
+                flash("invalid email address" , "login")
+                is_valid = False
 
+            if len(form_data["password"].strip()) == 0:
+                flash("please enter password" , "login")
+                is_valid = False
+            elif len(form_data["password"].strip()) < 6:
+                flash("Password must be at least 6 characters" , "login")
+                is_valid = False
+           
+            return is_valid
 
-    # Update Users Models
-
-
-
-    # Delete Users Models
+    @classmethod
+    def register(cls, user_data):
+           """Creates a new user from a form"""
+           query = """
+           INSERT INTO users
+           (first_name, last_name, email, password)
+           VALUES
+           (%(first_name)s, %(last_name)s, %(email)s, %(password)s);
+           """
+           user_id = connectToMySQL(User._db).query_db(query, user_data)
+           return user_id
+    
+    @classmethod
+    def find_by_email(cls, email):
+        """Finds one user by email in the db"""
+        query = "SELECT * FROM users WHERE email = %(email)s;"
+        data = {"email": email}
+        list_of_dicts = connectToMySQL(User._db).query_db(query, data)
+        if len(list_of_dicts) == 0:
+            return None
+        user = User(list_of_dicts[0])
+        return user
+    
+    @classmethod
+    def find_by_id(cls, user_id):
+        """Finds one user by id in the db"""
+        query = "SELECT * FROM users WHERE id = %(user_id)s;"
+        data = {"user_id": user_id}
+        list_of_dicts = connectToMySQL(User._db).query_db(query, data)
+        if len(list_of_dicts) == 0:
+            return None
+        user = User(list_of_dicts[0])
+        return user
+    
+    @classmethod
+    def find_by_id_with_gizmos(cls, user_id):
+        """Finds one user by id and their gizmos in the db"""
+        query = """
+        SELECT * FROM users
+        LEFT JOIN gizmos ON users.id = gizmos.user_id
+        WHERE users.id = %(user_id)s;
+        """
+        data = {"user_id": user_id}
+        list_of_dicts = connectToMySQL(User._db).query_db(query, data)
+        if len(list_of_dicts) == 0:
+            return None
+        user = User(list_of_dicts[0])
+        for each_dict in list_of_dicts:
+            for key in each_dict.keys():
+                print(key)
+            if each_dict["gizmos.id"] != None:
+                gizmos_data = {
+                    "id": each_dict["gizmos.id"],
+                    "title": each_dict["title"],
+                    "studio": each_dict["studio"],
+                    "description": each_dict["description"],
+                    "created_at": each_dict["gizmos.created_at"],
+                    "updated_at": each_dict["gizmos.updated_at"],
+                    "user_id": each_dict["user_id"],
+                }
+                gizmos = gizmos.Gizmos(gizmos_data)
+                user.gizmos.append(gizmos)
+        return user
+    
