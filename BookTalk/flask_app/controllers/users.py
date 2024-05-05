@@ -1,59 +1,88 @@
-from flask_app import app
-from flask import render_template, redirect, request, session
-from flask_app.models import user # import entire file, rather than class, to avoid circular imports
-# As you add model files add them the the import above
-# This file is the second stop in Flask's thought process, here it looks for a route that matches the request
-
-## declare session variables
-## -Attempts
-## -Known Phrase
-
-# ## Functions
-# - Restart
-# - Check a guess
-# - display game 
-# - Check if win
+from flask_app import app, bcrypt
+from flask_app.models.user import User
+from flask import flash, render_template, redirect, request, session
 
 
-
-# Create Users Controller
-
-# Read Users Controller
-
-@app.route('/')
+@app.get("/")
 def index():
-    return render_template('index.html')
+    """This route displays the login form"""
+    return render_template("index.html")
+
+@app.post("/users/register")
+def register():
+    """This route processess the registration"""
+
+    # if form not valid redirect
+    if not User.registration_is_valid(request.form):
+        return redirect("/")
+    
+    # check if user already exists
+    potential_user = User.find_by_email(request.form["email"])
+
+    # if user already exists redirect
+    if potential_user is not None:
+        flash("Email already exists", "register")
+        return redirect("/")
+    
+    # user does not exist, safe to creat and hash password
+    pw_hash = bcrypt.generate_password_hash(request.form['password'])
+    user_data = {
+        "first_name": request.form["first_name"],
+        "last_name": request.form["last_name"],
+        "email": request.form["email"],
+        "password": pw_hash,
+    }
+    user_id = User.register(user_data)
+
+    # save user id in session (log them in)
+    session["user_id"] = user_id
+    return redirect("/animes/all")
+
+@app.post("/users/login")
+def login():
+    """This route processes the login"""
+
+    # if form not valid redirect
+    if not User.login_is_valid(request.form):
+        print("a")
+        return redirect("/")
+
+    # check if user exists
+    potential_user = User.find_by_email(request.form["email"])
+
+    # if user does not exist redirect
+    if potential_user == None:
+        flash("invalid credentials", "login")
+        print("b")
+        return redirect("/")
+    
+    # user exists
+    user = potential_user
+
+    # check if password is correct
+    if not bcrypt.check_password_hash(user.password, request.form["password"]):
+        flash("Password is incorrect", "login")
+        print("c")
+        return redirect("/")
+    
+    # save user id in session (log them in)
+    session["user_id"] = user.id
+    return redirect("/animes/all")
+
+@app.post("/animes/all")
+def dashboard():
+    """This route displayes the user dashboard"""
+    if "user_id" not in session:
+        flash("please log in. ", "login")
+        return redirect("/")
+    
+    user = User.find_by_id(session["user_id"])
+    return render_template("all_animes.html", user=user)
+
+@app.get("/users/logout")
+def logout():
+    """This route logs the user out"""
+    session.clear()
+    return redirect("/")
 
 
-# Update Users Controller
-
-# Delete Users Controller
-
-
-# Notes:
-# 1 - Use meaningful names
-# 2 - Do not overwrite function names
-# 3 - No matchy, no worky
-# 4 - Use consistent naming conventions 
-# 5 - Keep it clean
-# 6 - Test every little line before progressing
-# 7 - READ ERROR MESSAGES!!!!!!
-# 8 - Error messages are found in the browser and terminal
-
-
-
-
-# How to use path variables:
-# @app.route('/<int:id>')                                   The variable must be in the path within angle brackets
-# def index(id):                                            It must also be passed into the function as an argument/parameter
-#     user_info = user.User.get_user_by_id(id)              The it will be able to be used within the function for that route
-#     return render_template('index.html', user_info)
-
-# Converter -	Description
-# string -	Accepts any text without a slash (the default).
-# int -	Accepts integers.
-# float -	Like int but for floating point values.
-# path 	-Like string but accepts slashes.
-
-# Render template is a function that takes in a template name in the form of a string, then any number of named arguments containing data to pass to that template where it will be integrated via the use of jinja
-# Redirect redirects from one route to another, this should always be done following a form submission. Don't render on a form submission.
