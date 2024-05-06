@@ -36,7 +36,7 @@ def register():
 
     # save user id in session (log them in)
     session["user_id"] = user_id
-    return redirect("/animes/all")
+    return redirect("/books/all")
 
 @app.post("/users/login")
 def login():
@@ -67,9 +67,9 @@ def login():
     
     # save user id in session (log them in)
     session["user_id"] = user.id
-    return redirect("/animes/all")
+    return redirect("/books/all")
 
-@app.post("/animes/all")
+@app.post("/books/all")
 def dashboard():
     """This route displayes the user dashboard"""
     if "user_id" not in session:
@@ -77,7 +77,7 @@ def dashboard():
         return redirect("/")
     
     user = User.find_by_id(session["user_id"])
-    return render_template("all_animes.html", user=user)
+    return render_template("dashboard.html", user=user)
 
 @app.get("/users/logout")
 def logout():

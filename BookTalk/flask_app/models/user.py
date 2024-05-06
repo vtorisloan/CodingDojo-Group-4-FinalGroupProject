@@ -7,7 +7,7 @@ EMAIL_REGEX = compile(r"^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]+$")
 
 #parent table (User model)
 class User:
-    _db = ""
+    _db = "booktok_db"
     def __init__(self, data):
         self.id = data["id"]
         self.first_name = data["first_name"]
@@ -16,7 +16,7 @@ class User:
         self.password = data["password"]
         self.created_at = data["created_at"]
         self.updated_at = data["updated_at"]
-        # self.gizmos = []
+        # self.books = []
         # self.user_watchlist = [] 
 
     @staticmethod
@@ -110,11 +110,11 @@ class User:
         return user
     
     @classmethod
-    def find_by_id_with_gizmos(cls, user_id):
-        """Finds one user by id and their gizmos in the db"""
+    def find_by_id_with_books(cls, user_id):
+        """Finds one user by id and their books in the db"""
         query = """
         SELECT * FROM users
-        LEFT JOIN gizmos ON users.id = gizmos.user_id
+        LEFT JOIN books ON users.id = books.user_id
         WHERE users.id = %(user_id)s;
         """
         data = {"user_id": user_id}
@@ -125,17 +125,18 @@ class User:
         for each_dict in list_of_dicts:
             for key in each_dict.keys():
                 print(key)
-            if each_dict["gizmos.id"] != None:
-                gizmos_data = {
-                    "id": each_dict["gizmos.id"],
+            if each_dict["books.id"] != None:
+                books_data = {
+                    "id": each_dict["books.id"],
                     "title": each_dict["title"],
-                    "studio": each_dict["studio"],
-                    "description": each_dict["description"],
-                    "created_at": each_dict["gizmos.created_at"],
-                    "updated_at": each_dict["gizmos.updated_at"],
+                    "review": each_dict["review"],
+                    "image": each_dict["image"],
+                    "author": each_dict["author"],
+                    "created_at": each_dict["books.created_at"],
+                    "updated_at": each_dict["books.updated_at"],
                     "user_id": each_dict["user_id"],
                 }
-                gizmos = gizmos.Gizmos(gizmos_data)
-                user.gizmos.append(gizmos)
+                books = books.Books(books_data)
+                user.books.append(books)
         return user
     
