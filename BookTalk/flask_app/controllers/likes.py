@@ -1,53 +1,18 @@
+# this will be from our new table called likes: will be a many to many and update the erd creating a new likes table and connecting it to the existing tables
+
 from flask_app import app
 from flask import flash, redirect, request, session
-from flask_app.models.like import Likes
+from flask_app.models.like import Like
 
-
-@app.post("/likes/watch")
-def watch_likes():
-    """This route processes an anime to our watch list"""
-
-    Likes.watch_likes()
+@app.post("/like/create")
+def create_like():
+    """This route processes the new like"""
 
     if "user_id" not in session:
         flash("please log in. ", "login")
-        return redirect("/")
+        return redirect('/')
+    
+    book_id = request.form['book_id']
 
-    form_data = {
-        "user_id": session["user_id"],
-        "anime_id": request.form["anime_id"]
-    }
-    Likes.watch(form_data)
-    return redirect("/likes")
-
-
-
-@app.get("/watchlist/remove/<int:anime_id>/<int:user_id>")
-def remove(anime_id, user_id):
-    """This route removes an anime from our watch list"""
-    if "user_id" not in session:
-        flash("please log in. ", "login")
-        return redirect("/")
-
-    form_data = {
-        "user_id": user_id,
-        "anime_id": anime_id
-    }
-    Likes.remove(form_data)
-    return redirect("/animes/all")
-
-@app.get("/watchlist/add/<int:anime_id>/<int:user_id>")
-def add(anime_id, user_id):
-    """This route adds an anime to our watch list"""
-    if "user_id" not in session:
-        flash("please log in. ", "login")
-        return redirect("/")
-
-    form_data = {
-        "user_id": user_id,
-        "anime_id": anime_id,
-        "watch_status": "watching"
-    }
-    Likes.add(form_data)
-    return redirect("/animes/all")
-
+    Like.create(request.form)
+    return redirect(f"/books/{book_id}")
